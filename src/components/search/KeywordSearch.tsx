@@ -5,27 +5,30 @@ import { API_ACCESS_TOKEN } from '@env';
 import MovieItem from '../movies/MovieItem';
 import type { Movie } from '../../types/app';
 
-const KeywordSearch = (): JSX.Element => {
+const KeywordSearch = ({ navigation }: any): JSX.Element => {
   const [keyword, setKeyword] = useState('');
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1); // Halaman saat ini
+  const [page, setPage] = useState(1);
   const { width } = Dimensions.get('window');
 
   useEffect(() => {
-    setMovies([]);
-    setPage(1);
+    if (keyword) {
+      setMovies([]);
+      setPage(1);
+      fetchMovies(true);
+    }
   }, [keyword]);
 
   const handleSubmit = (): void => {
     if (keyword) {
-      fetchMovies();
+      fetchMovies(true);
     }
   };
 
-  const fetchMovies = (): void => {
+  const fetchMovies = (reset: boolean = false): void => {
     setLoading(true);
-    const url = `https://api.themoviedb.org/3/search/movie?query=${keyword}&page=${page}`;
+    const url = `https://api.themoviedb.org/3/search/movie?query=${keyword}&page=${reset ? 1 : page}`;
     const options = {
       method: 'GET',
       headers: {
@@ -37,8 +40,8 @@ const KeywordSearch = (): JSX.Element => {
     fetch(url, options)
       .then(async (response) => await response.json())
       .then((response) => {
-        setMovies((prevMovies) => [...prevMovies, ...response.results]);
-        setPage(page + 1);
+        setMovies((prevMovies) => reset ? response.results : [...prevMovies, ...response.results]);
+        setPage(reset ? 2 : page + 1);
       })
       .catch((error) => console.error('Error fetching movies:', error))
       .finally(() => setLoading(false));
@@ -46,11 +49,15 @@ const KeywordSearch = (): JSX.Element => {
 
   const renderMovieItem = ({ item }: { item: Movie }): JSX.Element => {
     return (
-      <TouchableOpacity style={styles.movieItemContainer}>
+      <TouchableOpacity 
+        style={styles.movieItemContainer}
+        onPress={() => navigation.navigate('MovieDetail', { id: item.id })}
+      >
         <MovieItem 
           movie={item}
-          size={{ width: width / 3 - 32, height: (width / 3 - 32) * 1.5 }} // Sesuaikan ukuran
-          coverType="poster" />
+          size={{ width: width / 3 - 32, height: (width / 3 - 32) * 1.5 }}
+          coverType="poster" 
+        />
       </TouchableOpacity>
     );
   };
@@ -88,8 +95,8 @@ const KeywordSearch = (): JSX.Element => {
         numColumns={3}
         ItemSeparatorComponent={renderSeparator}
         ListFooterComponent={renderFooter}
-        onEndReached={fetchMovies}
-        onEndReachedThreshold={0.1}
+        onEndReached={() => fetchMovies()}
+        onEndReachedThreshold={0.5}
       />
     </View>
   );
