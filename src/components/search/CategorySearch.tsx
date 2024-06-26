@@ -1,53 +1,19 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  FlatList,
-  Image,
-} from 'react-native';
-import { StackActions, useNavigation } from '@react-navigation/native';
+import React, {useState, useEffect} from 'react';
+import {Text, StyleSheet, View, TouchableOpacity,} from 'react-native';
+import { useNavigation, StackActions } from '@react-navigation/native';
+import type { Genre } from '../../types/app';
 import { API_ACCESS_TOKEN } from '@env';
 
-const categories: string[] = [
-  'Action',
-  'Adventure',
-  'Animation',
-  'Comedy',
-  'Crime',
-  'Documentary',
-  'Drama',
-  'Family',
-  'Fantasy',
-  'History',
-  'Horror',
-  'Music',
-  'Mystery',
-  'Romance',
-  'Science Fiction',
-  'TV Movie',
-  'Thriller',
-  'War',
-  'Western',
-];
+const CategorySearch = (): JSX.Element => {
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
 
-const CategorySearch = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const navigation = useNavigation();
+  useEffect(() => {
+    fetchGenres();
+  }, []);
 
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-  };
-
-  const getMovieList = (query: string) => {
-    setLoading(true);
-    const path = `search/movie?query=${query}&page=1`;
-    const url = `https://api.themoviedb.org/3/${path}`;
+  const fetchGenres = (): void => {
+    const url = `https://api.themoviedb.org/3/genre/movie/list`;
     const options = {
       method: 'GET',
       headers: {
@@ -57,157 +23,86 @@ const CategorySearch = () => {
     };
 
     fetch(url, options)
-      .then((response) => response.json())
-      .then((data) => {
-        setResults(data.results);
-        setLoading(false);
-        navigation.dispatch(
-          StackActions.push('CategorySearchResult', {
-            results: data.results,
-            category: selectedCategory,
-          })
-        );
+      .then(async (response) => await response.json())
+      .then((response) => {
+        setGenres(response.genres);
       })
-      .catch((error) => {
-        setLoading(false);
-        console.error(error);
-      });
+      .catch((error) => console.error('Error fetching genres:', error));
   };
 
-  const handleSearch = () => {
-    if (selectedCategory) {
-      getMovieList(selectedCategory);
+  const handlePress = (genreId: number) => {
+    if (selectedGenres.includes(genreId)) {
+      setSelectedGenres(selectedGenres.filter((id) => id !== genreId));
     } else {
-      Alert.alert('Category not selected', 'Please select a category.');
+      setSelectedGenres([...selectedGenres, genreId]);
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.itemContainer}
-      onPress={() => {
-        console.log('Navigating to MovieDetail with ID:', item.id);
-        navigation.dispatch(StackActions.push('MovieDetail', { id: item.id }));
-      }}
-    >
-      <Image
-        style={styles.poster}
-        source={{ uri: `https://image.tmdb.org/t/p/w500/${item.poster_path}` }}
-      />
-      <View style={styles.detailsContainer}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.rating}>{`Rating: ${item.vote_average}`}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const navigation = useNavigation();
+  
+  const handleSearch = () => {
+
+    navigation.dispatch(StackActions.push('CategorySearchResult', { selectedGenres }));
+    console.log('Searching for movies with genres:', selectedGenres);
+  };
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.categoryContainer}>
-        {categories.map((category: string, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.button,
-              selectedCategory === category && styles.selectedButton,
-            ]}
-            onPress={() => handleCategorySelect(category)}
-          >
-            <Text
-              style={[
-                styles.buttonText,
-              ]}
-            >
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+    <View style={styles.container}>
+      {genres.map((genre) => (
+        <TouchableOpacity
+          key={genre.id}
+          activeOpacity={0.9}
+          style={{
+            ...styles.topBar,
+            backgroundColor: selectedGenres.includes(genre.id) ? '#8978A4' : '#dfd7ec',
+            borderRadius: 10,
+          }}
+          onPress={() => handlePress(genre.id)}
+        >
+          <Text style={styles.topBarLabel}>{genre.name}</Text>
+        </TouchableOpacity>
+      ))}
       <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
         <Text style={styles.searchButtonText}>Search</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  categoryContainer: {
-    width: '90%',
+    paddingTop: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 8,
   },
-  button: {
-    width: '48%',
-    marginVertical: 5,
-    paddingVertical: 10,
-    backgroundColor: '#DCCBFF',
-    borderRadius: 5,
+  topBar: {
     alignItems: 'center',
     justifyContent: 'center',
+    width: '48%',
+    height: 45,
+    marginBottom: 4,
   },
-  buttonText: {
+  topBarLabel: {
+    color: 'black',
     fontSize: 16,
-    color: '#000000',
+    fontWeight: '400',
+    textTransform: 'capitalize',
   },
   searchButton: {
-    width: '90%',
-    paddingVertical: 15,
-    marginVertical: 20,
-    backgroundColor: '#8978A4',
-    borderRadius: 20,
+    backgroundColor: '#8c77a7',
+    borderRadius: 40,
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 60,
+    width: '100%',
+    marginTop: 16,
   },
   searchButtonText: {
-    fontSize: 18,
-    color: '#ffffff',
-  },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 2,
-    marginTop: -100,
-    padding: 10,
-    backgroundColor: '#FFF',
-    borderRadius: 3,
-    height: 350,
-    width: 200,
-  },
-  poster: {
-    width: 80,
-    height: 120,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  detailsContainer: {
-    flex: 1,
-  },
-  title: {
+    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  rating: {
-    marginTop: 5,
-    color: '#888',
-  },
-  list: {
-    paddingHorizontal: 10,
-    paddingTop: 10,
-  },
-  selectedButton: {
-    backgroundColor: '#8978A4',
-  },
-  
-  loadingContainer: {
-    marginTop: 20,
+    textTransform: 'uppercase',
   },
 });
 
