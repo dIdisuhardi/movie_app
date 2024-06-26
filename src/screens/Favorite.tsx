@@ -85,7 +85,8 @@ export default function Favorite({ navigation }: any): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1, 
-    padding: 16, 
+    padding: 16,
+    marginTop: 16
   },
   itemContainer: {
     flex: 1 / 3, 
