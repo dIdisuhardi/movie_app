@@ -6,15 +6,18 @@ import {
   Text,
   Image,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native'
 import { FontAwesome } from '@expo/vector-icons' 
 import { API_URL, API_ACCESS_TOKEN } from '@env' 
 import MovieList from '../components/movies//MovieList' 
+import AsyncStorage from '@react-native-async-storage/async-storage' 
 
-const MovieDetail = ({ route, navigation }: any): JSX.Element => {
+const MovieDetail = ({ route }: any): JSX.Element => {
   const { id } = route.params
   const [movie, setMovie] = useState<any>(null) 
   const [recommendations, setRecommendations] = useState<any[]>([]) 
+  const [isFavorite, setIsFavorite] = useState<boolean>(false)
 
   const fetchData = (): void => {
    
@@ -61,9 +64,55 @@ const MovieDetail = ({ route, navigation }: any): JSX.Element => {
         console.error(err) 
       })
   }
+  const removeFavorite = async (id: number): Promise<void> => {
+    try {
+      const initialData: string | null =
+        await AsyncStorage.getItem('@FavoriteList')
+      if (initialData) {
+        let favMovieList: any[] = JSON.parse(initialData)
+        favMovieList = favMovieList.filter((movie) => movie.id !== id) 
+        await AsyncStorage.setItem(
+          '@FavoriteList',
+          JSON.stringify(favMovieList),
+        ) 
+        setIsFavorite(false) 
+      }
+    } catch (error) {
+      console.log(error) 
+    }
+  }
+
+  const addFavorite = async (movie: any): Promise<void> => {
+    try {
+      const initialData: string | null =
+        await AsyncStorage.getItem('@FavoriteList')
+      let favMovieList: any[] = initialData ? JSON.parse(initialData) : []
+
+      favMovieList.push(movie) 
+      await AsyncStorage.setItem('@FavoriteList', JSON.stringify(favMovieList)) 
+      setIsFavorite(true) 
+    } catch (error) {
+      console.log(error) 
+    }
+  }
+  const checkIsFavorite = async (id: number): Promise<void> => {
+    try {
+      const initialData: string | null =
+        await AsyncStorage.getItem('@FavoriteList')
+      if (initialData) {
+        const favMovieList: any[] = JSON.parse(initialData)
+        const isFav = favMovieList.some((movie) => movie.id === id) 
+        setIsFavorite(isFav) 
+      }
+    } catch (error) {
+      console.log(error) 
+    }
+  }
+
   useEffect(() => {
     fetchData() 
-    fetchRecommendations() 
+    fetchRecommendations()
+    checkIsFavorite(id)
   }, [id])
 
   return (
@@ -86,6 +135,23 @@ const MovieDetail = ({ route, navigation }: any): JSX.Element => {
                 <Text style={styles.rating}>
                   {movie.vote_average}
                 </Text>
+              </View>
+              <View style={styles.heartIcon}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (isFavorite) {
+                    removeFavorite(movie.id) 
+                  } else {
+                    addFavorite(movie) 
+                  }
+                }}
+              >
+                <FontAwesome
+                  name={isFavorite ? 'heart' : 'heart-o'} 
+                  size={30}
+                  color="pink"
+                />
+              </TouchableOpacity>
               </View>
             </View>
             <View style={{padding: 16}}>
@@ -129,7 +195,7 @@ const styles = StyleSheet.create({
   posterContainer: {
     position: 'relative', 
     width: '100%', 
-    height: 600,
+    height: 450,
   },
   poster: {
     width: '100%', 
@@ -153,6 +219,12 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     color: 'yellow', 
     marginLeft: 5, 
+  },
+  heartIcon: {
+    position: 'absolute', 
+    bottom: 10, 
+    right: 10, 
+    padding: 16, 
   },
   title: {
     fontSize: 24, 
