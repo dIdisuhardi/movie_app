@@ -12,7 +12,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const HomeStackNavigation = () => (
   <Stack.Navigator>
-    <Stack.Screen name="Home" component={Home} />
+    <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
     <Stack.Screen name="MovieDetail" component={MovieDetail} />
   </Stack.Navigator>
 );
