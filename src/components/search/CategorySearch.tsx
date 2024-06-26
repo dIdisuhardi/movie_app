@@ -78,9 +78,9 @@ const styles = StyleSheet.create({
   topBar: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: '48%',
-    height: 45,
-    marginBottom: 4,
+    width: '49%',
+    height: 48,
+    marginBottom: 2,
   },
   topBarLabel: {
     color: 'black',
