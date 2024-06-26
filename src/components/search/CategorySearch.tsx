@@ -43,7 +43,6 @@ const CategorySearch = (): JSX.Element => {
   const handleSearch = () => {
 
     navigation.dispatch(StackActions.push('CategorySearchResult', { selectedGenres }));
-    console.log('Searching for movies with genres:', selectedGenres);
   };
 
   return (
